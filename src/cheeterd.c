@@ -97,6 +97,33 @@ int main(int argc, char *argv[]) {
 
   // Initialize logging
   cheeter_log_init(1); // Default to debug for now
+
+  // Check if another instance is already running
+  char *socket_path = cheeter_get_socket_path();
+  if (g_file_test(socket_path, G_FILE_TEST_EXISTS)) {
+    // Try to connect - if successful, another instance is running
+    GSocketClient *client = g_socket_client_new();
+    GSocketAddress *addr = g_unix_socket_address_new(socket_path);
+    GSocketConnection *conn =
+        g_socket_client_connect(client, G_SOCKET_CONNECTABLE(addr), NULL, NULL);
+
+    if (conn) {
+      g_object_unref(conn);
+      g_object_unref(addr);
+      g_object_unref(client);
+      g_printerr("cheeterd is already running (socket: %s)\n", socket_path);
+      g_free(socket_path);
+      return 1;
+    }
+
+    // Socket exists but not connectable - stale socket, remove it
+    LOG_WARN("Removing stale socket: %s", socket_path);
+    unlink(socket_path);
+    g_object_unref(addr);
+    g_object_unref(client);
+  }
+  g_free(socket_path);
+
   LOG_INFO("Starting cheeterd...");
 
   // Load Config
@@ -138,9 +165,9 @@ int main(int argc, char *argv[]) {
   g_free(map_file);
 
   // Setup IPC
-  char *socket_path = cheeter_get_socket_path();
+  char *ipc_socket_path = cheeter_get_socket_path();
   CheeterIpcServer *ipc =
-      cheeter_ipc_server_new(socket_path, on_ipc_command, NULL);
+      cheeter_ipc_server_new(ipc_socket_path, on_ipc_command, NULL);
   cheeter_ipc_server_attach_to_mainloop(ipc);
 
   // Backend Init
@@ -189,7 +216,7 @@ int main(int argc, char *argv[]) {
   cheeter_config_free(config);
   g_free(config_path);
   g_free(config_dir);
-  g_free(socket_path);
+  g_free(ipc_socket_path);
   // if (mainloop) g_main_loop_unref(mainloop);
 
   LOG_INFO("cheeterd exited gracefully.");

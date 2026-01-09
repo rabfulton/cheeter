@@ -27,7 +27,8 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
   cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
   cairo_fill(cr);
 
-  // Render PDF
+  // Apply scale and render PDF
+  cairo_scale(cr, data->scale, data->scale);
   poppler_page_render(data->page, cr);
   return FALSE;
 }
@@ -97,11 +98,12 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
   // Load page 0 (first page)
   data->page = poppler_document_get_page(data->doc, 0);
 
-  // Resize drawing area to fit page
+  // Resize drawing area to fit scaled page
   if (data->page) {
     double w, h;
     poppler_page_get_size(data->page, &w, &h);
-    gtk_widget_set_size_request(data->drawing_area, (int)w, (int)h);
+    gtk_widget_set_size_request(data->drawing_area, (int)(w * data->scale),
+                                (int)(h * data->scale));
   }
 
   gtk_widget_queue_draw(data->drawing_area);
@@ -116,4 +118,23 @@ gboolean cheeter_viewer_get_page_size(GtkWidget *viewer, double *width,
 
   poppler_page_get_size(data->page, width, height);
   return TRUE;
+}
+
+void cheeter_viewer_set_scale(GtkWidget *viewer, double scale) {
+  ViewerData *data =
+      (ViewerData *)g_object_get_data(G_OBJECT(viewer), "viewer-data");
+  if (!data)
+    return;
+
+  data->scale = scale;
+
+  // Update drawing area size for new scale
+  if (data->page) {
+    double w, h;
+    poppler_page_get_size(data->page, &w, &h);
+    gtk_widget_set_size_request(data->drawing_area, (int)(w * scale),
+                                (int)(h * scale));
+  }
+
+  gtk_widget_queue_draw(data->drawing_area);
 }

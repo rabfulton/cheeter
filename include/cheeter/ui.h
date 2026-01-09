@@ -19,4 +19,7 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path);
 gboolean cheeter_viewer_get_page_size(GtkWidget *viewer, double *width,
                                       double *height);
 
+// Set the scale factor for rendering
+void cheeter_viewer_set_scale(GtkWidget *viewer, double scale);
+
 #endif

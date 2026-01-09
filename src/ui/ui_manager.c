@@ -63,25 +63,43 @@ void cheeter_ui_toggle(const char *sheet_path) {
     int mon_w = monitor_rect.width;
     int mon_h = monitor_rect.height;
 
-    // Get PDF page dimensions
+    // Get PDF page dimensions (in points, 72 points/inch)
     double page_w = 800, page_h = 600; // Default fallback
     if (cheeter_viewer_get_page_size(g_viewer, &page_w, &page_h)) {
-      LOG_DEBUG("PDF page size: %.0f x %.0f", page_w, page_h);
+      LOG_DEBUG("PDF page size (points): %.0f x %.0f", page_w, page_h);
     }
 
-    // Scale down if the PDF is larger than 90% of monitor
+    // PDF is in points (72 DPI). Scale up to display resolution.
+    // Get the monitor scale factor (for HiDPI)
+    int gdk_scale = gdk_monitor_get_scale_factor(monitor);
+
+    // Base scale: convert 72 DPI points to ~96 DPI pixels (common baseline)
+    // Then multiply by GDK scale factor for HiDPI
+    double dpi_scale = (96.0 / 72.0) * gdk_scale;
+
+    double scaled_w = page_w * dpi_scale;
+    double scaled_h = page_h * dpi_scale;
+
+    LOG_DEBUG("Scaled size: %.0f x %.0f (dpi_scale=%.2f, gdk_scale=%d)",
+              scaled_w, scaled_h, dpi_scale, gdk_scale);
+
+    // Cap at 90% of monitor if still too large
     double max_w = mon_w * 0.9;
     double max_h = mon_h * 0.9;
-    double scale = 1.0;
+    double final_scale = 1.0;
 
-    if (page_w > max_w || page_h > max_h) {
-      double scale_w = max_w / page_w;
-      double scale_h = max_h / page_h;
-      scale = (scale_w < scale_h) ? scale_w : scale_h;
+    if (scaled_w > max_w || scaled_h > max_h) {
+      double scale_w = max_w / scaled_w;
+      double scale_h = max_h / scaled_h;
+      final_scale = (scale_w < scale_h) ? scale_w : scale_h;
     }
 
-    int win_w = (int)(page_w * scale);
-    int win_h = (int)(page_h * scale);
+    int win_w = (int)(scaled_w * final_scale);
+    int win_h = (int)(scaled_h * final_scale);
+
+    // Tell the viewer what scale to use for rendering
+    double render_scale = dpi_scale * final_scale;
+    cheeter_viewer_set_scale(g_viewer, render_scale);
 
     // Center the window on the monitor
     int win_x = monitor_rect.x + (mon_w - win_w) / 2;
@@ -90,8 +108,8 @@ void cheeter_ui_toggle(const char *sheet_path) {
     gtk_window_resize(GTK_WINDOW(g_window), win_w, win_h);
     gtk_window_move(GTK_WINDOW(g_window), win_x, win_y);
 
-    LOG_INFO("Window: %dx%d at (%d,%d), scale=%.2f", win_w, win_h, win_x, win_y,
-             scale);
+    LOG_INFO("Window: %dx%d at (%d,%d), render_scale=%.2f", win_w, win_h, win_x,
+             win_y, render_scale);
 
     gtk_widget_show_all(g_window);
     gtk_window_present(GTK_WINDOW(g_window));
