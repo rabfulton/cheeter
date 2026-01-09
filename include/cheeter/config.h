@@ -6,6 +6,7 @@
 typedef struct {
   char *hotkey;
   char *sheets_dir; // Custom path to cheat sheets directory (NULL = default)
+  double zoom_level;
   bool debug_log;
 } CheeterConfig;
 

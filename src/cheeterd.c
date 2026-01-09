@@ -132,6 +132,9 @@ int main(int argc, char *argv[]) {
   CheeterConfig *config = cheeter_config_load(config_path);
   cheeter_log_init(config->debug_log);
 
+  // Set zoom level
+  cheeter_ui_set_zoom_level(config->zoom_level);
+
   // Override hotkey from CLI if specified
   if (opt_hotkey) {
     g_free(config->hotkey);

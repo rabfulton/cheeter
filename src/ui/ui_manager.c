@@ -4,12 +4,33 @@
 
 static GtkWidget *g_window = NULL;
 static GtkWidget *g_viewer = NULL;
+static double g_zoom_level = 1.0;
+
+void cheeter_ui_set_zoom_level(double zoom) {
+  if (zoom > 0.1)
+    g_zoom_level = zoom;
+}
 
 void cheeter_ui_init(int *argc, char ***argv) { gtk_init(argc, argv); }
 
 void cheeter_ui_run(void) { gtk_main(); }
 
 void cheeter_ui_quit(void) { gtk_main_quit(); }
+
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event,
+                             gpointer user_data) {
+  (void)user_data;
+  (void)widget;
+
+  if (event->keyval == GDK_KEY_q || event->keyval == GDK_KEY_Escape) {
+    LOG_DEBUG("Key '%s' pressed, hiding window",
+              gdk_keyval_name(event->keyval));
+    gtk_widget_hide(g_window);
+    return TRUE; // Event handled
+  }
+
+  return FALSE; // Propagate
+}
 
 static void ensure_window(void) {
   if (g_window)
@@ -31,6 +52,9 @@ static void ensure_window(void) {
 
   // Handle close/delete
   g_signal_connect(g_window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
+  // Handle keyboard shortcuts (q, Esc)
+  g_signal_connect(g_window, "key-press-event", G_CALLBACK(on_key_press), NULL);
 
   gtk_widget_realize(g_window);
 }
@@ -70,18 +94,29 @@ void cheeter_ui_toggle(const char *sheet_path) {
     }
 
     // PDF is in points (72 DPI). Scale up to display resolution.
-    // Get the monitor scale factor (for HiDPI)
-    int gdk_scale = gdk_monitor_get_scale_factor(monitor);
+    double system_dpi = gdk_screen_get_resolution(screen);
+    if (system_dpi <= 0) {
+      system_dpi = 96.0; // Fallback if detecting DPI fails
+      LOG_WARN("Could not detect system DPI, falling back to %.1f", system_dpi);
+    } else {
+      LOG_DEBUG("Detected system DPI: %.1f", system_dpi);
+    }
 
-    // Base scale: convert 72 DPI points to ~96 DPI pixels (common baseline)
-    // Then multiply by GDK scale factor for HiDPI
-    double dpi_scale = (96.0 / 72.0) * gdk_scale;
+    // Base scale: convert 72 DPI points to system DPI pixels
+    // Note: gdk_screen_get_resolution typically includes the scaling factor
+    // logic for fonts but for physical pixel mapping on some backends (Wayland
+    // vs X11) it might vary. Generally: scale = system_dpi / 72.0
+    double dpi_scale = system_dpi / 72.0;
+
+    // Apply user zoom preference
+    dpi_scale *= g_zoom_level;
 
     double scaled_w = page_w * dpi_scale;
     double scaled_h = page_h * dpi_scale;
 
-    LOG_DEBUG("Scaled size: %.0f x %.0f (dpi_scale=%.2f, gdk_scale=%d)",
-              scaled_w, scaled_h, dpi_scale, gdk_scale);
+    LOG_DEBUG(
+        "Scaled size: %.0f x %.0f (dpi_scale=%.2f, system_dpi=%.1f, zoom=%.2f)",
+        scaled_w, scaled_h, dpi_scale, system_dpi, g_zoom_level);
 
     // Cap at 90% of monitor if still too large
     double max_w = mon_w * 0.9;

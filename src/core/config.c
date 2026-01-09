@@ -27,7 +27,7 @@ static const char *DEFAULT_CONFIG_TEMPLATE =
     "#   Ctrl+Alt+h       (Ctrl + Alt + H key)\n"
     "#   Super+F1         (Super + F1 key)\n"
     "#\n"
-    "hotkey = Super+slash\n"
+    "hotkey = Ctrl+Alt+c\n"
     "\n"
     "# sheets_dir - Directory containing cheat sheet PDF files.\n"
     "#\n"
@@ -38,6 +38,12 @@ static const char *DEFAULT_CONFIG_TEMPLATE =
     "#   sheets_dir = /home/user/Documents/cheatsheets\n"
     "#\n"
     "# sheets_dir =\n"
+    "\n"
+    "# zoom_level - Additional scaling factor for documents.\n"
+    "#\n"
+    "# Default is 1.0. Increase to make documents larger (e.g. 1.2, 1.5).\n"
+    "#\n"
+    "zoom_level = 1.0\n"
     "\n"
     "# debug_log - Enable verbose debug logging.\n"
     "#\n"
@@ -75,8 +81,9 @@ CheeterConfig *cheeter_config_load(const char *path) {
   GError *error = NULL;
 
   // Set defaults
-  config->hotkey = g_strdup("Super+slash");
+  config->hotkey = g_strdup("Ctrl+Alt+c");
   config->sheets_dir = NULL; // NULL means use default
+  config->zoom_level = 1.0;
   config->debug_log = false;
 
   if (!path) {
@@ -107,6 +114,11 @@ CheeterConfig *cheeter_config_load(const char *path) {
     config->sheets_dir = val_str;
   } else {
     g_free(val_str);
+  }
+
+  if (g_key_file_has_key(keyfile, "General", "zoom_level", NULL)) {
+    config->zoom_level =
+        g_key_file_get_double(keyfile, "General", "zoom_level", NULL);
   }
 
   if (g_key_file_has_key(keyfile, "General", "debug_log", NULL)) {

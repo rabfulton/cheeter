@@ -11,6 +11,9 @@ void cheeter_ui_quit(void);
 // If sheet_path is NULL, and currently hidden, show empty or default state.
 void cheeter_ui_toggle(const char *sheet_path);
 
+// Set the base zoom level (config preference)
+void cheeter_ui_set_zoom_level(double zoom);
+
 // Helper to create the viewer widget
 GtkWidget *cheeter_viewer_new(void);
 void cheeter_viewer_load_file(GtkWidget *viewer, const char *path);
