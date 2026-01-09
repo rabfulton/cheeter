@@ -68,19 +68,30 @@ Alternatively, the `cheeter.desktop` file is installed to `share/applications` a
 
 ## Usage
 
-1.  **Start the Daemon**: Ensure `cheeterd` is running (manually or via systemd).
-2.  **Add Cheatsheets**: Place your PDF cheatsheets in `~/.local/share/cheeter/sheets/`.
-    *   Example: `cp ~/Downloads/emacs-refcard.pdf ~/.local/share/cheeter/sheets/emacs.pdf`
-3.  **Mappings**: Cheeter tries to resolve sheets automatically (e.g., if the app is `emacs`, it looks for `emacs.pdf`). You can explicitly map applications in `~/.config/cheeter/mappings.tsv`.
-    *   Format: `KEY` (tab or space) `PATH`
-    *   The `KEY` is usually `exe:<binary_name>` or `class:<wm_class>`.
-    *   Example content for `mappings.tsv`:
-        ```tsv
-        exe:code    /home/user/.local/share/cheeter/sheets/vscode.pdf
-        exe:firefox /home/user/.local/share/cheeter/sheets/browser-shortcuts.pdf
-        ```
 4.  **Trigger**: Press the hotkey (default `Super+/` on X11) to toggle the overlay.
     *   You can also toggle via CLI: `cheeter toggle`.
+
+## Controls
+
+| Key | Action |
+| :--- | :--- |
+| `n` / `Right Arrow` | Next Page |
+| `p` / `Left Arrow` | Previous Page |
+| `Escape` | Close Overlay |
+
+## Usage
+1.  **Start the Daemon**: Ensure `cheeterd` is running (manually or via systemd).
+2.  **Add Cheatsheets**: Place your cheatsheets in `~/.local/share/cheeter/sheets/`.
+    *   Supported formats: `.pdf`, `.png`, `.jpg`, `.jpeg`.
+    *   Example: `cp ~/Downloads/vim-cheat.png ~/.local/share/cheeter/sheets/vim.png`
+3.  **Mappings**: Cheeter tries to resolve sheets automatically.
+    *   **Terminal Detection**: Cheeter automatically detects applications running *inside* your terminal (e.g., `vim`, `nano`, `python`) so you can simply name your sheet `vim.pdf` or `python.png`.
+    *   **Explicit Mapping**: You can manually map applications in `~/.config/cheeter/mappings.tsv`.
+        *   Format: `KEY` (tab or space) `PATH`
+        *   Example:
+            ```tsv
+            exe:code    /home/user/.local/share/cheeter/sheets/vscode.pdf
+            ```
 
 ## Configuration
 
