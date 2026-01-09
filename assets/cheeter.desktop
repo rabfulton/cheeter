@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Cheeter Daemon
+Comment=Background service for context-aware cheatsheet overlay
+Exec=cheeterd
+Terminal=false
+Categories=Utility;Accessibilty;
+NoDisplay=true

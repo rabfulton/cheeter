@@ -1,0 +1,13 @@
+[Unit]
+Description=Cheeter - Context-aware cheatsheet overlay daemon
+Documentation=https://github.com/rab/cheeter
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cheeterd
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
