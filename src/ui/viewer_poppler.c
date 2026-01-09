@@ -10,6 +10,7 @@ typedef struct {
   GtkWidget *drawing_area;
   PopplerDocument *doc;
   PopplerPage *page;
+  GdkPixbuf *image;
   double scale;
   int current_page;
   int n_pages;
@@ -17,7 +18,7 @@ typedef struct {
 
 static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
   ViewerData *data = (ViewerData *)user_data;
-  if (!data->page) {
+  if (!data->page && !data->image) {
     // Draw nothing or placeholder
     return FALSE;
   }
@@ -29,9 +30,16 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
   cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
   cairo_fill(cr);
 
-  // Apply scale and render PDF
+  // Apply scale
   cairo_scale(cr, data->scale, data->scale);
-  poppler_page_render(data->page, cr);
+
+  if (data->image) {
+    gdk_cairo_set_source_pixbuf(cr, data->image, 0, 0);
+    cairo_paint(cr);
+  } else if (data->page) {
+    poppler_page_render(data->page, cr);
+  }
+
   return FALSE;
 }
 
@@ -39,8 +47,9 @@ static void free_viewer_data(gpointer user_data) {
   ViewerData *data = (ViewerData *)user_data;
   if (data->page)
     g_object_unref(data->page);
-  if (data->doc)
-    g_object_unref(data->doc);
+  g_object_unref(data->doc);
+  if (data->image)
+    g_object_unref(data->image);
   g_free(data);
 }
 
@@ -99,6 +108,10 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
     g_object_unref(data->doc);
     data->doc = NULL;
   }
+  if (data->image) {
+    g_object_unref(data->image);
+    data->image = NULL;
+  }
   data->current_page = 0;
   data->n_pages = 0;
 
@@ -108,12 +121,36 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
   }
 
   GError *error = NULL;
+
+  // Try loading as image first using gdk-pixbuf
+  data->image = gdk_pixbuf_new_from_file(path, &error);
+  if (data->image) {
+    LOG_INFO("Loaded image: %s", path);
+    data->n_pages = 1;
+
+    // Resize drawing area for image
+    double w = gdk_pixbuf_get_width(data->image);
+    double h = gdk_pixbuf_get_height(data->image);
+    gtk_widget_set_size_request(data->drawing_area, (int)(w * data->scale),
+                                (int)(h * data->scale));
+    gtk_widget_queue_draw(data->drawing_area);
+    return;
+  }
+
+  // If not an image (or failed), try PDF
+  if (error) {
+    // Clear error from image load attempt so we can reuse for PDF
+    // or maybe we just ignore it and trust PDF load to fail if it's not a PDF
+    // either. But strictly speaking, gdk_pixbuf might set error.
+    g_clear_error(&error);
+  }
+
   char *uri = g_filename_to_uri(path, NULL, NULL);
   data->doc = poppler_document_new_from_file(uri, NULL, &error);
   g_free(uri);
 
   if (!data->doc) {
-    LOG_WARN("Failed to load PDF %s: %s", path,
+    LOG_WARN("Failed to load as Image or PDF %s: %s", path,
              error ? error->message : "unknown");
     if (error)
       g_error_free(error);
@@ -132,7 +169,16 @@ gboolean cheeter_viewer_get_page_size(GtkWidget *viewer, double *width,
                                       double *height) {
   ViewerData *data =
       (ViewerData *)g_object_get_data(G_OBJECT(viewer), "viewer-data");
-  if (!data || !data->page)
+  if (!data)
+    return FALSE;
+
+  if (data->image) {
+    *width = gdk_pixbuf_get_width(data->image);
+    *height = gdk_pixbuf_get_height(data->image);
+    return TRUE;
+  }
+
+  if (!data->page)
     return FALSE;
 
   poppler_page_get_size(data->page, width, height);
@@ -148,7 +194,12 @@ void cheeter_viewer_set_scale(GtkWidget *viewer, double scale) {
   data->scale = scale;
 
   // Update drawing area size for new scale
-  if (data->page) {
+  if (data->image) {
+    double w = gdk_pixbuf_get_width(data->image);
+    double h = gdk_pixbuf_get_height(data->image);
+    gtk_widget_set_size_request(data->drawing_area, (int)(w * scale),
+                                (int)(h * scale));
+  } else if (data->page) {
     double w, h;
     poppler_page_get_size(data->page, &w, &h);
     gtk_widget_set_size_request(data->drawing_area, (int)(w * scale),

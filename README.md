@@ -8,7 +8,7 @@ Cheeter is a context-aware cheatsheet overlay daemon for Linux. It runs in the b
 - **Overlay UI**: Minimalist, borderless window that appears in the center of the screen.
 - **Fast**: Written in C using GLib and GTK+.
 - **Configurable**: Simple text-based configuration and mapping files.
-- **PDF Support**: Renders cheatsheets directly using Poppler.
+- **PDF and PNG Support**: Renders cheatsheets directly using Poppler.
 
 ## Dependencies
 

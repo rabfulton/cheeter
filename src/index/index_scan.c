@@ -42,12 +42,22 @@ void cheeter_index_scan_dir(SheetIndex *index, const char *dir_path) {
   const char *filename;
   int count = 0;
   while ((filename = g_dir_read_name(dir))) {
-    if (g_str_has_suffix(filename, ".pdf")) {
+    int ext_len = 0;
+    if (g_str_has_suffix(filename, ".pdf"))
+      ext_len = 4;
+    else if (g_str_has_suffix(filename, ".png"))
+      ext_len = 4;
+    else if (g_str_has_suffix(filename, ".jpg"))
+      ext_len = 4;
+    else if (g_str_has_suffix(filename, ".jpeg"))
+      ext_len = 5;
+
+    if (ext_len > 0) {
       SheetEntry *entry = g_new0(SheetEntry, 1);
       entry->path = g_build_filename(dir_path, filename, NULL);
 
       // Basename = lowercase, no extension
-      char *no_ext = g_strndup(filename, strlen(filename) - 4);
+      char *no_ext = g_strndup(filename, strlen(filename) - ext_len);
       entry->basename = g_ascii_strdown(no_ext, -1);
       g_free(no_ext);
 
