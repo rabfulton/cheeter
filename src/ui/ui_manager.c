@@ -29,6 +29,17 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event,
     return TRUE; // Event handled
   }
 
+  if (g_viewer && gtk_widget_get_visible(g_window)) {
+    if (event->keyval == GDK_KEY_n || event->keyval == GDK_KEY_Right) {
+      cheeter_viewer_next_page(g_viewer);
+      return TRUE;
+    }
+    if (event->keyval == GDK_KEY_p || event->keyval == GDK_KEY_Left) {
+      cheeter_viewer_prev_page(g_viewer);
+      return TRUE;
+    }
+  }
+
   return FALSE; // Propagate
 }
 

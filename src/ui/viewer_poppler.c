@@ -11,6 +11,8 @@ typedef struct {
   PopplerDocument *doc;
   PopplerPage *page;
   double scale;
+  int current_page;
+  int n_pages;
 } ViewerData;
 
 static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
@@ -61,6 +63,28 @@ GtkWidget *cheeter_viewer_new(void) {
   return scroll;
 }
 
+static void load_page(ViewerData *data, int page_index) {
+  if (!data->doc || page_index < 0 || page_index >= data->n_pages)
+    return;
+
+  if (data->page) {
+    g_object_unref(data->page);
+  }
+
+  data->current_page = page_index;
+  data->page = poppler_document_get_page(data->doc, page_index);
+
+  // Resize drawing area
+  if (data->page) {
+    double w, h;
+    poppler_page_get_size(data->page, &w, &h);
+    gtk_widget_set_size_request(data->drawing_area, (int)(w * data->scale),
+                                (int)(h * data->scale));
+  }
+
+  gtk_widget_queue_draw(data->drawing_area);
+}
+
 void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
   ViewerData *data =
       (ViewerData *)g_object_get_data(G_OBJECT(viewer), "viewer-data");
@@ -75,6 +99,8 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
     g_object_unref(data->doc);
     data->doc = NULL;
   }
+  data->current_page = 0;
+  data->n_pages = 0;
 
   if (!path) {
     gtk_widget_queue_draw(data->drawing_area);
@@ -95,18 +121,11 @@ void cheeter_viewer_load_file(GtkWidget *viewer, const char *path) {
     return;
   }
 
-  // Load page 0 (first page)
-  data->page = poppler_document_get_page(data->doc, 0);
+  data->n_pages = poppler_document_get_n_pages(data->doc);
+  LOG_DEBUG("Loaded PDF with %d pages", data->n_pages);
 
-  // Resize drawing area to fit scaled page
-  if (data->page) {
-    double w, h;
-    poppler_page_get_size(data->page, &w, &h);
-    gtk_widget_set_size_request(data->drawing_area, (int)(w * data->scale),
-                                (int)(h * data->scale));
-  }
-
-  gtk_widget_queue_draw(data->drawing_area);
+  // Load page 0
+  load_page(data, 0);
 }
 
 gboolean cheeter_viewer_get_page_size(GtkWidget *viewer, double *width,
@@ -137,4 +156,26 @@ void cheeter_viewer_set_scale(GtkWidget *viewer, double scale) {
   }
 
   gtk_widget_queue_draw(data->drawing_area);
+}
+
+void cheeter_viewer_next_page(GtkWidget *viewer) {
+  ViewerData *data =
+      (ViewerData *)g_object_get_data(G_OBJECT(viewer), "viewer-data");
+  if (!data || !data->doc)
+    return;
+
+  if (data->current_page < data->n_pages - 1) {
+    load_page(data, data->current_page + 1);
+  }
+}
+
+void cheeter_viewer_prev_page(GtkWidget *viewer) {
+  ViewerData *data =
+      (ViewerData *)g_object_get_data(G_OBJECT(viewer), "viewer-data");
+  if (!data || !data->doc)
+    return;
+
+  if (data->current_page > 0) {
+    load_page(data, data->current_page - 1);
+  }
 }

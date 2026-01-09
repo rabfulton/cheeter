@@ -25,4 +25,7 @@ gboolean cheeter_viewer_get_page_size(GtkWidget *viewer, double *width,
 // Set the scale factor for rendering
 void cheeter_viewer_set_scale(GtkWidget *viewer, double scale);
 
+void cheeter_viewer_next_page(GtkWidget *viewer);
+void cheeter_viewer_prev_page(GtkWidget *viewer);
+
 #endif

@@ -1,11 +1,11 @@
 # Cheeter
 
-Cheeter is a context-aware cheatsheet overlay daemon for Linux. It runs in the background and, when triggered (default: `Super+/`), detects the currently active application and displays a relevant PDF cheatsheet in a "Quake-style" drop-down overlay.
+Cheeter is a context-aware cheatsheet overlay daemon for Linux. It runs in the background and, when triggered (default: `ctrl + alt + c`), detects the currently active application and displays a relevant PDF cheatsheet in an overlay.
 
 ## Features
 
 - **Context-Aware**: Automatically detects the active window (via X11 or AT-SPI) to show the correct sheets.
-- **Overlay UI**: Minimalist, borderless window that drops down from the top of the screen.
+- **Overlay UI**: Minimalist, borderless window that appears in the center of the screen.
 - **Fast**: Written in C using GLib and GTK+.
 - **Configurable**: Simple text-based configuration and mapping files.
 - **PDF Support**: Renders cheatsheets directly using Poppler.
